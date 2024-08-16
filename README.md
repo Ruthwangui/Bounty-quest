@@ -13,7 +13,7 @@ This script demonstrates a comprehensive integration between Uniswap V3 and Aave
 
 4. **Token Supply on Aave**: After the LINK tokens are acquired through Uniswap, the script supplies these tokens to Aave's Lending Pool to earn interest, showcasing the composability of DeFi protocols.
 
-### Workflow Summary:
+### Work Summary:
 
 1. **Initialize Environment**: The script begins by loading environment variables and initializing the Ethereum provider and signer with the user's private key.
    
