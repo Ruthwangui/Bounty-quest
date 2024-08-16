@@ -36,5 +36,32 @@ The diagram below illustrates the sequence of steps and interactions between the
 This flowchart provides a visual representation of the process, showing how the script interacts with different smart contracts on Uniswap and Aave, from initiating the token swap to supplying tokens to Aave.
 
 
+# Code Explanation
+
+## Introduction
+
+This document provides a detailed explanation of the code that integrates Uniswap and Aave protocols on the Ethereum Sepolia testnet. The script performs a series of operations including swapping USDC for LINK on Uniswap and supplying the acquired LINK to Aave to start earning interest. This guide breaks down the key functions, logic, and how the script handles interactions with the DeFi protocols.
+
+## Key Functions and Logic
+
+### 1. `approveToken`
+
+```javascript
+async function approveToken(tokenAddress, tokenABI, amount, wallet) {
+  try {
+    const tokenContract = new ethers.Contract(tokenAddress, tokenABI, wallet);
+    const approveAmount = ethers.parseUnits(amount.toString(), USDC.decimals);
+    const approveTransaction = await tokenContract.approve.populateTransaction(
+      SWAP_ROUTER_CONTRACT_ADDRESS,
+      approveAmount
+    );
+    const transactionResponse = await wallet.sendTransaction(approveTransaction);
+    const receipt = await transactionResponse.wait();
+  } catch (error) {
+    console.error("An error occurred during token approval:", error);
+    throw new Error("Token approval failed");
+  }
+}
+
 
 
