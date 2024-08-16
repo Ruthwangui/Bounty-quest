@@ -63,5 +63,160 @@ async function approveToken(tokenAddress, tokenABI, amount, wallet) {
   }
 }
 
+- **Purpose**: This function approves a specified amount of a token (USDC) to be used by another contract (Uniswap's Swap Router or Aave's Lending Pool).
+- **Parameters**:
+  - `tokenAddress`: The address of the token contract (e.g., USDC).
+  - `tokenABI`: The ABI of the token contract.
+  - `amount`: The amount of tokens to approve.
+  - `wallet`: The wallet instance used to sign the transaction.
+- **Logic**: The function initializes a contract instance for the token, converts the amount to the correct units, and then sends an approval transaction to the blockchain. The transaction allows the specified contract to spend the tokens on behalf of the user.
+
+### 2. `getPoolInfo`
+
+```javascript
+async function getPoolInfo(factoryContract, tokenIn, tokenOut) {
+  const poolAddress = await factoryContract.getPool(
+    tokenIn.address,
+    tokenOut.address,
+    3000
+  );
+  if (!poolAddress) {
+    throw new Error("Failed to get pool address");
+  }
+  const poolContract = new ethers.Contract(poolAddress, POOL_ABI, provider);
+  const [token0, token1, fee] = await Promise.all([
+    poolContract.token0(),
+    poolContract.token1(),
+    poolContract.fee(),
+  ]);
+  return { poolContract, token0, token1, fee };
+}
+```
+
+- **Purpose**: This function retrieves essential information about a Uniswap V3 liquidity pool that contains the pair of tokens to be swapped.
+- **Parameters**:
+  - `factoryContract`: The Uniswap Factory contract instance.
+  - `tokenIn`: The input token (USDC).
+  - `tokenOut`: The output token (LINK).
+- **Logic**: The function queries the Factory contract to get the address of the pool corresponding to the specified token pair. It then initializes a contract instance for the pool and retrieves the token addresses and fee tier associated with the pool.
+
+### 3. `prepareSwapParams`
+
+```javascript
+async function prepareSwapParams(poolContract, signer, amountIn) {
+  return {
+    tokenIn: USDC.address,
+    tokenOut: LINK.address,
+    fee: await poolContract.fee(),
+    recipient: signer.address,
+    amountIn: amountIn,
+    amountOutMinimum: 0,
+    sqrtPriceLimitX96: 0,
+  };
+}
+```
+
+- **Purpose**: Prepares the parameters required to execute a swap on Uniswap.
+- **Parameters**:
+  - `poolContract`: The contract instance of the Uniswap pool.
+  - `signer`: The wallet instance to sign the transaction.
+  - `amountIn`: The amount of input tokens to swap.
+- **Logic**: This function creates a structured object containing all necessary parameters for the Uniswap swap, such as the input/output token addresses, fee tier, recipient address, and amount to swap.
+
+### 4. `executeSwap`
+
+```javascript
+async function executeSwap(swapRouter, params, signer) {
+  const transaction = await swapRouter.exactInputSingle.populateTransaction(
+    params
+  );
+  const receipt = await signer.sendTransaction(transaction);
+}
+```
+
+- **Purpose**: Executes the token swap on Uniswap using the prepared swap parameters.
+- **Parameters**:
+  - `swapRouter`: The Uniswap Swap Router contract instance.
+  - `params`: The parameters object prepared by `prepareSwapParams`.
+  - `signer`: The wallet instance that will send the transaction.
+- **Logic**: The function sends a transaction to the Uniswap Swap Router to perform the swap. It uses the provided parameters and waits for the transaction to be confirmed on the blockchain.
+
+### 5. `supplyToAave`
+
+```javascript
+async function supplyToAave(aaveLendingPool, amount, wallet) {
+  try {
+    const supplyTransaction = await aaveLendingPool.supply(
+      LINK.address,
+      amount,
+      wallet.address,
+      0
+    );
+    const receipt = await supplyTransaction.wait();
+  } catch (error) {
+    console.error("An error occurred during LINK supply to Aave:", error);
+    throw new Error("LINK supply to Aave failed");
+  }
+}
+```
+
+- **Purpose**: Supplies the acquired LINK tokens to Aave’s Lending Pool to earn interest.
+- **Parameters**:
+  - `aaveLendingPool`: The Aave Lending Pool contract instance.
+  - `amount`: The amount of LINK tokens to supply.
+  - `wallet`: The wallet instance to sign the transaction.
+- **Logic**: The function sends a transaction to the Aave Lending Pool to supply the specified amount of LINK tokens. The transaction is then confirmed on the blockchain, effectively starting the interest-earning process.
+
+### 6. `main`
+
+```javascript
+async function main(swapAmount) {
+  const inputAmount = swapAmount;
+  const amountIn = ethers.parseUnits(inputAmount.toString(), USDC.decimals);
+
+  try {
+    await approveToken(USDC.address, TOKEN_IN_ABI, inputAmount, signer);
+    const { poolContract } = await getPoolInfo(factoryContract, USDC, LINK);
+    const params = await prepareSwapParams(poolContract, signer, amountIn);
+    const swapRouter = new ethers.Contract(
+      SWAP_ROUTER_CONTRACT_ADDRESS,
+      SWAP_ROUTER_ABI,
+      signer
+    );
+    await executeSwap(swapRouter, params, signer);
+
+    const linkBalance = await LINK_CONTRACT.balanceOf(signer.address);
+    await approveToken(LINK.address, TOKEN_OUT_ABI, linkBalance, signer);
+    await supplyToAave(aaveLendingPool, linkBalance, signer);
+  } catch (error) {
+    console.error("An error occurred:", error.message);
+  }
+}
+```
+
+- **Purpose**: The main function coordinates the entire process of swapping USDC for LINK and then supplying LINK to Aave.
+- **Parameters**:
+  - `swapAmount`: The amount of USDC to swap for LINK.
+- **Logic**:
+  - Converts the swap amount to the correct units.
+  - Approves the Uniswap Swap Router to spend USDC.
+  - Retrieves pool information and prepares swap parameters.
+  - Executes the swap on Uniswap.
+  - Retrieves the LINK balance and approves the Aave Lending Pool to spend LINK.
+  - Supplies the LINK to Aave.
+
+## Interaction with DeFi Protocols
+
+### Uniswap
+- **Token Swap**: The script interacts with Uniswap's Factory, Pool, and Swap Router contracts to perform a USDC to LINK swap. It involves approving token spending, retrieving pool information, and executing the swap.
+
+### Aave
+- **Token Supply**: After the swap, the script supplies LINK to Aave's Lending Pool. This process involves approving the Aave contract to spend LINK and sending a transaction to supply the tokens, allowing the user to earn interest.
+
+
+
+This script showcases the composability of DeFi protocols by seamlessly integrating Uniswap and Aave. By following the logical sequence of approving tokens, retrieving necessary information, and executing transactions, the script demonstrates how to perform a token swap and supply the swapped tokens to another DeFi protocol. Each function plays a crucial role in managing the interactions with the smart contracts, ensuring the entire process is executed efficiently and securely.
+```
+
 
 
