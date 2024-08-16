@@ -35,33 +35,7 @@ The diagram below illustrates the sequence of steps and interactions between the
 
 This flowchart provides a visual representation of the process, showing how the script interacts with different smart contracts on Uniswap and Aave, from initiating the token swap to supplying tokens to Aave.
 
-## How to Run the Script
 
-1. **Clone the Repository**: Clone the project repository to your local machine.
-
-    ```bash
-    git clone https://github.com/your-repo/defi-script.git
-    cd defi-script
-    ```
-
-2. **Install Dependencies**: Install the necessary Node.js dependencies.
-
-    ```bash
-    npm install
-    ```
-
-3. **Set Up Environment Variables**: Create a `.env` file in the root directory and add your Sepolia RPC URL and private key.
-
-    ```
-    RPC_URL="https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID"
-    PRIVATE_KEY="YOUR_PRIVATE_KEY"
-    ```
-
-4. **Run the Script**: Execute the script to perform the token swap and supply process.
-
-    ```bash
-    node index.js
-    ```
 
 ## Requirements
 
