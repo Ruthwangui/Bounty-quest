@@ -37,17 +37,4 @@ This flowchart provides a visual representation of the process, showing how the 
 
 
 
-## Requirements
 
-- Node.js and npm installed on your local machine.
-- An Ethereum wallet with USDC, LINK, and some Sepolia ETH to cover gas fees.
-- Infura account for obtaining the Sepolia RPC URL.
-
-## Notes
-
-- Ensure you are connected to the Sepolia testnet, as this script is designed for test purposes.
-- The `.env` file should be kept secure and should not be shared, as it contains sensitive information like your private key.
-
-## License
-
-This project is licensed under the MIT License.
